@@ -1,9 +1,10 @@
-import { Statement } from "./statement";
+import { SyntaxNode } from "./base/SyntaxNode";
+import { Stmt } from ".";
 
 export class Program {
-    statementList: Statement[];
+    stmts: Stmt[];
 
-    constructor(statements: Statement[]) {
-        this.statementList = statements;
+    constructor(stmts: Stmt[]) {
+        this.stmts = stmts;
     }
 }

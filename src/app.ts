@@ -1,23 +1,25 @@
-import { LexicalAnalysis } from "./analysis/LexicalAnalysis";
-import { SourceCode } from "./analysis/SourceCode";
-import { Parser } from "./analysis/Parser";
-import { TokenType } from "./analysis/Token";
-let s = new SourceCode(`var a=(a++&&b||++c)+(++b);
-if(a > b){
-    a = b;
-} else {
-    a = c;
-}`);
+import { Source } from "./frontend/Source";
+import { LexicalAnalysis } from "./frontend/LexicalAnalysis";
+import { PredefineTokenType } from "./frontend/PredefineTokenType";
+import { Parser } from "./frontend/Parser";
+import { Interpreter } from "./interpreter/Interpreter";
+import { Environment } from "./interpreter/Environment";
+
+let s = new Source(`function add(a: int, b: int): int {
+    return a + b;
+}
+`);
 let ana = new LexicalAnalysis(s);
-// while(1){
+
+// while (1) {
 //     let token = ana.nextToken();
-//     console.log(token);
-//     let a = 1;
-//     if(token.type === TokenType.EOF) {
+//     console.log(token.toString());
+//     if(token.type === PredefineTokenType.EOF) {
 //         break;
 //     }
 // }
-let p = new Parser(ana);
-console.log(p.parser());
 
+let parser = new Parser(ana);
+let interpret = new Interpreter(parser, new Environment());
+interpret.run();
 console.log("end");
