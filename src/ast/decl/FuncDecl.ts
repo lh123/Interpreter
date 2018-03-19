@@ -1,25 +1,26 @@
-import { Decl, IndentNode, BlockStmt, VarDecl } from "..";
+import { Decl, BlockStmt, VarDecl } from "..";
 import { Token } from "../../frontend/Token";
+import { TypeNode } from "../terminal/TypeNode";
 
 export class FuncDecl implements Decl {
     
-    nameNode: IndentNode;
+    nameToken: Token;
     paramList: VarDecl[];
     body: BlockStmt;
-    returnType: IndentNode;
+    returnType: TypeNode;
 
-    constructor(nameNode: IndentNode, paramList: VarDecl[], body: BlockStmt, returnType: IndentNode) {
-        this.nameNode = nameNode;
+    constructor(nameToken: Token, paramList: VarDecl[], body: BlockStmt, returnType: TypeNode) {
+        this.nameToken = nameToken;
         this.paramList = paramList;
         this.body = body;
         this.returnType = returnType;
     }
 
     column(): number {
-        return this.nameNode.column();
+        return this.nameToken.column;
     }
 
     line(): number {
-        return this.nameNode.line();
+        return this.nameToken.line;
     }
 }

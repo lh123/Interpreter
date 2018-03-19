@@ -2,18 +2,20 @@ import { Expr } from "..";
 import { Token } from "../../frontend/Token";
 import { TypeSymbol } from "../../symbol-table/TypeSymbol";
 
-export class IntNode implements Expr {
-
-    checkType(): TypeSymbol {
-        return TypeSymbol.IntegerType;
-    }
+export class ConstNode implements Expr {
 
     intToken: Token;
-    value: number;
+    value: any;
+    type: TypeSymbol
 
-    constructor(intToken: Token) {
+    constructor(intToken: Token, type: TypeSymbol) {
         this.intToken = intToken;
         this.value = intToken.value;
+        this.type = type;
+    }
+
+    checkType(): TypeSymbol {
+        return this.type;
     }
 
     column(): number {

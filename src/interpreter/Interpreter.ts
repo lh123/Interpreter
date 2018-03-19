@@ -1,7 +1,7 @@
 import * as Ast from "../ast";
 import { Environment } from "./Environment";
 import { Parser } from "../frontend/Parser";
-import { visitVarDect } from "./visitor/VarDeclVisitor";
+import { visitVarDecl } from "./visitor/VarDeclVisitor";
 import { visitStmt } from "./visitor/StmtVisitor";
 
 export class Interpreter {

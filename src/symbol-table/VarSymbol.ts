@@ -1,4 +1,4 @@
-import {Symbol} from "./Symbol";
+import { Symbol } from "./Symbol";
 import { TypeSymbol } from "./TypeSymbol";
 
 export class VarSymbol extends Symbol {
@@ -12,4 +12,7 @@ export class VarSymbol extends Symbol {
         this.value = value;
     }
 
+    isVariable() {
+        return true;
+    }
 }

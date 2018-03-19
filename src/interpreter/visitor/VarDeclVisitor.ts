@@ -1,27 +1,28 @@
-import { VarDecl, VarDeclDefine } from "../../ast";
+import { VarDecl } from "../../ast";
 import { Environment } from "../Environment";
 import { visitExpr } from "./ExprVisitor";
+import { TypeHelper } from "../../symbol-table/TypeHelper";
 
 
-export function visitVarDect(node: VarDecl, env: Environment): void {
-    let varNode = node.varNode;
-    let typeNode = node.typeNode;
-    let typeSymbol = env.getTypeSymbol(typeNode.name);
-    if (node instanceof VarDeclDefine) {
+export function visitVarDecl(node: VarDecl, env: Environment): void {
+    let varNode = node.varNameNode;
+    let typeNode = node.varTypeNode;
+    let varType = env.getTypeSymbol(typeNode.name);
+    if (node.expr !== null) {
         let expr = node.expr;
         let exprType = expr.checkType(env);
-        if (typeSymbol.isAssignbleFrom(exprType)) {
-            env.defineVarSymbol(varNode.name, visitExpr(expr, env), typeSymbol.name);
+        if (TypeHelper.isAssignbleFrom(varType, exprType)) {
+            env.defineVarSymbol(varNode.name, visitExpr(expr, env), varType.getName());
         } else {
-            throw `"${typeSymbol.getName()}" 与 "${exprType.getName()}" 不能进行 "=" 运算`;
+            throw `"${varType.getName()}" 与 "${exprType.getName()}" 不能进行 "=" 运算`;
         }
     } else {
-        if (typeSymbol.isBool()) {
-            env.defineVarSymbol(varNode.name, false, typeSymbol.name);
-        } else if (typeSymbol.isInteger()) {
-            env.defineVarSymbol(varNode.name, 0, typeSymbol.name);
-        } else if (typeSymbol.isReal()) {
-            env.defineVarSymbol(varNode.name, 0.0, typeSymbol.name);
+        if (TypeHelper.isBoolType(varType)) {
+            env.defineVarSymbol(varNode.name, false, varType.getName());
+        } else if (TypeHelper.isIntegerType(varType)) {
+            env.defineVarSymbol(varNode.name, 0, varType.getName());
+        } else if (TypeHelper.isRealType(varType)) {
+            env.defineVarSymbol(varNode.name, 0.0, varType.getName());
         } else {
             throw "never reach here!";
         }

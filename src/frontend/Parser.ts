@@ -5,8 +5,10 @@ import { TokenType } from "./TokenType";
 
 import * as Ast from "../ast";
 import { BlockStmt, AssignStmt, IncDecStmt, VarDecl, Expr } from "../ast";
+import { TypeSymbol } from "../symbol-table/TypeSymbol";
 
 export class Parser {
+
 
     private lexicalAnalysis: LexicalAnalysis;
     private mCurrentToken: Token | null = null;
@@ -58,6 +60,7 @@ export class Parser {
      *           |  WhileStmt
      *           |  ReturnStmt
      *           |  Block
+     *           |  ExprStmt
      */
     private parserStmt(): Ast.Stmt | null {
         let token = this.currentToken();
@@ -80,10 +83,8 @@ export class Parser {
             let nextToken = this.peekToken();
             if (nextToken.type === PredefineTokenType.Assign) {
                 return this.parserVarAssignStmt();
-            } else if (nextToken.type === PredefineTokenType.LeftParen) {
-                return this.parserFuncCall();
             } else {
-                throw this.invalid(token);
+                return this.parserExprStmt();
             }
         } else if (token.type === PredefineTokenType.LeftBrace) {
             return this.parserBlockStmt();
@@ -101,35 +102,34 @@ export class Parser {
     private parserFuncDecl(): Ast.FuncDecl {
         this.match(PredefineTokenType.Func);
         let funcNameToken = this.match(PredefineTokenType.Indentifier);
-        let funcNameNode = new Ast.IndentNode(funcNameToken);
         let funcParamList: Ast.VarDecl[] = [];
         this.match(PredefineTokenType.LeftParen);
         let token = this.currentToken();
         if (token.type === PredefineTokenType.Indentifier) {
             let paramToken = this.nextToken();
-            let paramNode = new Ast.IndentNode(token);
+            let paramNode = new Ast.VarNode(token);
             this.match(PredefineTokenType.Colon);
             let paramTypeToken = this.match(PredefineTokenType.Indentifier);
-            let paramTypeNode = new Ast.IndentNode(paramTypeToken);
-            funcParamList.push(new Ast.VarDecl(paramNode, paramTypeNode));
+            let paramTypeNode = new Ast.TypeNode(paramTypeToken);
+            funcParamList.push(new Ast.VarDecl(paramNode, paramTypeNode, null));
             token = this.currentToken();
             while (token.type === PredefineTokenType.Comma) {
                 this.nextToken();
                 paramToken = this.match(PredefineTokenType.Indentifier);
-                paramNode = new Ast.IndentNode(paramToken);
+                paramNode = new Ast.VarNode(paramToken);
                 this.match(PredefineTokenType.Colon);
                 paramTypeToken = this.match(PredefineTokenType.Indentifier);
-                paramTypeNode = new Ast.IndentNode(paramTypeToken);
-                funcParamList.push(new Ast.VarDecl(paramNode, paramTypeNode));
+                paramTypeNode = new Ast.TypeNode(paramTypeToken);
+                funcParamList.push(new Ast.VarDecl(paramNode, paramTypeNode, null));
                 token = this.currentToken();
             }
         }
         this.match(PredefineTokenType.RightParen);
         this.match(PredefineTokenType.Colon);
         let returnToken = this.match(PredefineTokenType.Indentifier);
-        let returnType = new Ast.IndentNode(returnToken);
+        let returnType = new Ast.TypeNode(returnToken);
         let funcBody = this.parserBlockStmt();
-        return new Ast.FuncDecl(funcNameNode, funcParamList, funcBody, returnType);
+        return new Ast.FuncDecl(funcNameToken, funcParamList, funcBody, returnType);
     }
 
     /**
@@ -145,73 +145,24 @@ export class Parser {
         return new Ast.ReturnStmt(returnExpr, returnToken);
     }
 
-    private parserFuncCall(): Ast.FuncCallStmt {
-        let varToken = this.match(PredefineTokenType.Indentifier);
-        let varNode = new Ast.IndentNode(varToken);
-        let paraList: Ast.IndentNode[] = [];
-        this.match(PredefineTokenType.LeftParen);
-        let token = this.currentToken();
-        if (token.type !== PredefineTokenType.RightParen) {
-            while (1) {
-                let varToken = this.match(PredefineTokenType.Indentifier);
-                let varNode = new Ast.IndentNode(varToken);
-                let token = this.currentToken();
-                paraList.push(varNode);
-                if (token.type !== PredefineTokenType.Comma) {
-                    break;
-                }
-            }
-        }
-        this.match(PredefineTokenType.RightParen);
-        this.match(PredefineTokenType.Semicolon);
-        return new Ast.FuncCallStmt(varNode, paraList);
-    }
-
-
     /**
      * such as : var a: int = 5;
-     *           var a: int = 5, b:real = 6;
-     * VarDeclaration := "var" VarDeclarationBody ("," VarDeclarationBody)* ";"
+     * 
+     * VarDeclaration := "var" <id> ":" <id> ("=" Exp) ";"
      */
-
     private parserVarDeclaration(): Ast.Stmt {
-        this.match(PredefineTokenType.Var);
-        let declaration = this.parserVarDeclarationBody();
-        let token = this.currentToken();
-        if (token.type === PredefineTokenType.Comma) {
-            let declarationList: Ast.VarDecl[] = [];
-            declarationList.push(declaration);
-            while (token.type === PredefineTokenType.Comma) {
-                this.nextToken();
-                declaration = this.parserVarDeclarationBody();
-                declarationList.push(declaration);
-                token = this.currentToken();
-            }
-            this.match(PredefineTokenType.Semicolon);
-            return new Ast.CompositeVarDecl(declarationList);
-        } else {
-            this.match(PredefineTokenType.Semicolon);
-            return declaration;
-        }
-    }
-
-    /**
-     * VarDeclarationBody := <id> ":" <id> ("=" Expression)?
-     */
-    private parserVarDeclarationBody(): Ast.VarDecl {
-        let varToken = this.match(PredefineTokenType.Indentifier);
-        let varNode = new Ast.IndentNode(varToken);
+        let varToken = this.match(PredefineTokenType.Var);
+        let varNameToken = this.match(PredefineTokenType.Indentifier);
         this.match(PredefineTokenType.Colon);
-        let typeToken = this.match(PredefineTokenType.Indentifier);
-        let typeNode = new Ast.IndentNode(typeToken);
+        let varTypeToken = this.match(PredefineTokenType.Indentifier);
         let token = this.currentToken();
+        let expr: Ast.Expr | null = null;
         if (token.type === PredefineTokenType.Assign) {
             this.nextToken();
-            let expr = this.parserExpression();
-            return new Ast.VarDeclDefine(varNode, typeNode, expr);
-        } else {
-            return new Ast.VarDecl(varNode, typeNode);
+            expr = this.parserExpression();
         }
+        this.match(PredefineTokenType.Semicolon);
+        return new Ast.VarDecl(new Ast.VarNode(varNameToken), new Ast.TypeNode(varTypeToken), expr);
     }
 
     /**
@@ -221,7 +172,7 @@ export class Parser {
      */
     private parserVarAssignStmt(): Ast.Stmt {
         let varToken = this.match(PredefineTokenType.Indentifier);
-        let indentNode = new Ast.IndentNode(varToken);
+        let indentNode = new Ast.VarNode(varToken);
         let stmt: AssignStmt | IncDecStmt;
         let opToken = this.currentToken();
         if (opToken.type === PredefineTokenType.Assign) {
@@ -296,23 +247,18 @@ export class Parser {
         return new Ast.IfStmt(ifToken, testExpr, trueBlock, falseBlock);
     }
 
+    parserExprStmt(): Ast.ExprStmt {
+        let expr = this.parserExpression();
+        this.match(PredefineTokenType.Semicolon);
+        return new Ast.ExprStmt(expr);
+    }
+
     /**
-     * Expression := LogicalOrExpression ("," LogicalOrExpression)*
+     * Expression := LogicalOrExpression
      */
     parserExpression(): Ast.Expr {
         let logical = this.parserLogicalOrExpression();
-        let token = this.currentToken();
-        if (token.type === PredefineTokenType.Comma) {
-            let expressions: Ast.Expr[] = [logical];
-            while (token.type === PredefineTokenType.Comma) {
-                this.nextToken();
-                expressions.push(this.parserLogicalOrExpression());
-                token = this.currentToken();
-            }
-            return new Ast.CommaExpr(expressions);
-        } else {
-            return logical;
-        }
+        return logical;
     }
 
     /**
@@ -413,6 +359,7 @@ export class Parser {
      *                   | <id>
      *                   | <int>
      *                   | <real>
+     *                   | FunCallExpr
      */
     parserTermailExpression(): Ast.Expr {
         let token = this.currentToken();
@@ -422,20 +369,46 @@ export class Parser {
             this.match(PredefineTokenType.RightParen);
             return exp;
         } else if (token.type === PredefineTokenType.Indentifier) {
-            this.nextToken();
-            return new Ast.IndentNode(token);
+            if (this.peekToken().type === PredefineTokenType.LeftParen) {
+                return this.parserFuncCallExpr();
+            } else {
+                this.nextToken();
+                return new Ast.VarNode(token);
+            }
         } else if (token.type === PredefineTokenType.Integer) {
             this.nextToken();
-            return new Ast.IntNode(token);
+            return new Ast.ConstNode(token, TypeSymbol.IntegerType);
         } else if (token.type === PredefineTokenType.Real) {
             this.nextToken();
-            return new Ast.RealNode(token);
+            return new Ast.ConstNode(token, TypeSymbol.RealType);
         } else if (token.type === PredefineTokenType.Bool) {
             this.nextToken();
-            return new Ast.BoolNode(token);
+            return new Ast.ConstNode(token, TypeSymbol.BoolType);
         } else {
             throw this.invalid(token);
         }
+    }
+
+    /**
+     * add(a, b);
+     * <id> "(" Exp ("," Exp")*
+     */
+    private parserFuncCallExpr(): Ast.FuncCallExpr {
+        let funcNameToken = this.match(PredefineTokenType.Indentifier);
+        let paraList: Ast.Expr[] = [];
+        this.match(PredefineTokenType.LeftParen);
+        let token = this.currentToken();
+        if (token.type !== PredefineTokenType.RightParen) {
+            paraList.push(this.parserExpression());
+            token = this.currentToken();
+            while (token.type === PredefineTokenType.Comma) {
+                this.nextToken();
+                paraList.push(this.parserExpression());
+                token = this.currentToken();
+            }
+        }
+        this.match(PredefineTokenType.RightParen);
+        return new Ast.FuncCallExpr(funcNameToken, paraList);
     }
 
     private nextToken() {

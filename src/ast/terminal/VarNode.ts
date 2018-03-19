@@ -3,8 +3,9 @@ import { Token } from "../../frontend/Token";
 import { Environment } from "../../interpreter/Environment";
 import { TypeSymbol } from "../../symbol-table/TypeSymbol";
 
-export class IndentNode implements Expr {
+export class VarNode implements Expr {
 
+    value: any;
     idToken: Token;
     name: string;
 

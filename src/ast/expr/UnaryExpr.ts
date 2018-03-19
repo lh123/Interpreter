@@ -3,6 +3,7 @@ import { Token } from "../../frontend/Token";
 import { PredefineTokenType } from "../../frontend/PredefineTokenType";
 import { Environment } from "../../interpreter/Environment";
 import { TypeSymbol } from "../../symbol-table/TypeSymbol";
+import { TypeHelper } from "../../symbol-table/TypeHelper";
 
 export class UnaryExpr implements Expr {
 
@@ -17,7 +18,7 @@ export class UnaryExpr implements Expr {
     checkType(env: Environment): TypeSymbol {
         let type = this.expr.checkType(env);
         if (this.op.type === PredefineTokenType.Not) {
-            if (type.isBool()) {
+            if (TypeHelper.isBoolType(type)) {
                 return type;
             } else {
                 throw `"${type.getName()}" 不能进行 "${this.op.value}" 运算`;

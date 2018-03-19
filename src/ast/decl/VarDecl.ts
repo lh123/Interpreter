@@ -1,20 +1,22 @@
-import { Decl, IndentNode } from "..";
+import { Decl, Expr, VarNode, TypeNode } from "..";
 
 export class VarDecl implements Decl {
 
-    varNode: IndentNode;
-    typeNode: IndentNode;
+    varNameNode: VarNode;
+    varTypeNode: TypeNode;
+    expr: Expr | null;
 
-    constructor(varNode: IndentNode, typeNode: IndentNode) {
-        this.varNode = varNode;
-        this.typeNode = typeNode;
+    constructor(varNameNode: VarNode, varTypeNode: TypeNode, expr: Expr | null) {
+        this.varNameNode = varNameNode;
+        this.varTypeNode = varTypeNode;
+        this.expr = expr;
     }
-    
+
     column(): number {
-        return this.varNode.column();
+        return this.varNameNode.column();
     }
-    
+
     line(): number {
-        return this.varNode.line();
+        return this.varNameNode.line();
     }
 }

@@ -1,21 +1,21 @@
-import { Stmt, IndentNode } from "..";
+import { Stmt, VarNode } from "..";
 import { Token } from "../../frontend/Token";
 
 export class IncDecStmt implements Stmt {
 
-    indentNode: IndentNode;
+    varNode: VarNode;
     incDecToken: Token;
 
-    constructor(indentNode: IndentNode, incDecToken: Token) {
-        this.indentNode = indentNode;
+    constructor(indentNode: VarNode, incDecToken: Token) {
+        this.varNode = indentNode;
         this.incDecToken = incDecToken;
     }
 
     column(): number {
-        return this.indentNode.column();
+        return this.varNode.column();
     }
 
     line(): number {
-        return this.indentNode.line();
+        return this.varNode.line();
     }
 }

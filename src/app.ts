@@ -5,9 +5,16 @@ import { Parser } from "./frontend/Parser";
 import { Interpreter } from "./interpreter/Interpreter";
 import { Environment } from "./interpreter/Environment";
 
-let s = new Source(`function add(a: int, b: int): int {
-    return a + b;
+let s = new Source(`
+function fib(n:int):int {
+    if(n < 2) {
+        return n;
+    } else {
+        return fib(n-1) + fib(n-2);
+    }
 }
+var result: int = fib(10);
+printf(result);
 `);
 let ana = new LexicalAnalysis(s);
 

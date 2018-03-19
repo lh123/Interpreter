@@ -1,23 +1,23 @@
-import { Stmt, Expr, IndentNode } from "..";
+import { Stmt, Expr, VarNode } from "..";
 import { Token } from "../../frontend/Token";
 
 export class AssignStmt implements Stmt {
 
-    indentNode: IndentNode;
+    varNode: VarNode;
     opToken: Token;
     expr: Expr;
 
-    constructor(indentNode: IndentNode, opToken: Token, expr: Expr){
-        this.indentNode = indentNode;
+    constructor(varNode: VarNode, opToken: Token, expr: Expr){
+        this.varNode = varNode;
         this.opToken = opToken;
         this.expr = expr;
     }
 
     column(): number {
-        throw this.indentNode.column();
+        throw this.varNode.column();
     }
 
     line(): number {
-        throw this.indentNode.line();
+        throw this.varNode.line();
     }
 }

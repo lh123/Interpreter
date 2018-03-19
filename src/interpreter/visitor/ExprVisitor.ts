@@ -1,6 +1,11 @@
-import { Expr, BinaryExpr, UnaryExpr, CommaExpr, IndentNode, IntNode, RealNode, BoolNode } from "../../ast";
+import { Expr, BinaryExpr, UnaryExpr, FuncCallExpr, ConstNode, VarNode } from "../../ast";
 import { Environment } from "../Environment";
 import { PredefineTokenType } from "../../frontend/PredefineTokenType";
+import { NativeFuncTypeSymbol } from "../../symbol-table/NativeFuncTypeSymbol";
+import { TypeHelper } from "../../symbol-table/TypeHelper";
+import { visitNativeFuncCall } from "./VisitNativeFuncCall";
+import { FuncTypeSymbol } from "../../symbol-table/FuncTypeSymbol";
+import { visitStmt } from "./StmtVisitor";
 
 export function visitExpr(node: Expr, env: Environment): any {
     if (node instanceof BinaryExpr) {
@@ -8,71 +13,91 @@ export function visitExpr(node: Expr, env: Environment): any {
         return visitBinaryExpr(node, env);
     } else if (node instanceof UnaryExpr) {
         return visitUaryExpr(node, env);
-    } else if (node instanceof CommaExpr) {
-        return visitCommaExpr(node, env);
-    } else if (node instanceof IndentNode) {
+    } else if (node instanceof ConstNode) {
+        return node.value;
+    } else if (node instanceof VarNode) {
         return env.getVarSymbol(node.name).value;
-    } else if (node instanceof IntNode) {
-        return node.value;
-    } else if (node instanceof RealNode) {
-        return node.value;
-    } else if (node instanceof BoolNode) {
-        return node.value;
-    } else {
-        throw `未知表达式`;
+    } else if (node instanceof FuncCallExpr) {
+        return visitFuncCallExpr(env, node);
     }
 }
 
 function visitBinaryExpr(node: BinaryExpr, env: Environment): any {
-    let lvalue = visitExpr(node.letftExpr, env);
-    let rvalue = visitExpr(node.rightExpr, env);
     switch (node.op.type) {
         case PredefineTokenType.Add:
-            return lvalue + rvalue;
+            return visitExpr(node.letftExpr, env) + visitExpr(node.rightExpr, env);
         case PredefineTokenType.Sub:
-            return lvalue - rvalue;
+            return visitExpr(node.letftExpr, env) - visitExpr(node.rightExpr, env);
         case PredefineTokenType.Mul:
-            return lvalue * rvalue;
+            return visitExpr(node.letftExpr, env) * visitExpr(node.rightExpr, env);
         case PredefineTokenType.Div:
-            return lvalue / rvalue;
+            return visitExpr(node.letftExpr, env) / visitExpr(node.rightExpr, env);
         case PredefineTokenType.Equal:
-            return lvalue === rvalue;
+            return visitExpr(node.letftExpr, env) == visitExpr(node.rightExpr, env);
         case PredefineTokenType.NotEqual:
-            return lvalue !== rvalue;
+            return visitExpr(node.letftExpr, env) != visitExpr(node.rightExpr, env);
         case PredefineTokenType.Less:
-            return lvalue < rvalue;
+            return visitExpr(node.letftExpr, env) < visitExpr(node.rightExpr, env);
         case PredefineTokenType.LessEqual:
-            return lvalue <= rvalue;
+            return visitExpr(node.letftExpr, env) <= visitExpr(node.rightExpr, env);
         case PredefineTokenType.Greater:
-            return lvalue > rvalue;
+            return visitExpr(node.letftExpr, env) > visitExpr(node.rightExpr, env);
         case PredefineTokenType.GreaterEqual:
-            return lvalue >= rvalue;
+            return visitExpr(node.letftExpr, env) >= visitExpr(node.rightExpr, env);
         case PredefineTokenType.And:
-            return lvalue && rvalue;
+            return visitExpr(node.letftExpr, env) && visitExpr(node.rightExpr, env);
         case PredefineTokenType.Or:
-            return lvalue || rvalue;
+            return visitExpr(node.letftExpr, env) || visitExpr(node.rightExpr, env);
     }
-    throw `未知运算符${node.op.value}`;
 }
 
 function visitUaryExpr(node: UnaryExpr, env: Environment): any {
-    let lvalue = visitExpr(node.expr, env);
     switch (node.op.type) {
         case PredefineTokenType.Add:
-            return lvalue;
+            return visitExpr(node.expr, env);
         case PredefineTokenType.Sub:
-            return -lvalue;
+            return -visitExpr(node.expr, env);
         case PredefineTokenType.Not:
-            return !lvalue;
+            return !visitExpr(node.expr, env);
     }
-    throw `未知运算符${node.op.value}`;
 }
 
-function visitCommaExpr(node: CommaExpr, env: Environment): number | boolean {
-    let lastValue: number | boolean = 0;
-    for (let index = 0; index < node.exprList.length; index++) {
-        const element = node.exprList[index];
-        lastValue = visitExpr(element, env);
+function visitFuncCallExpr(env: Environment, node: FuncCallExpr): any {
+    let funcType = env.getTypeSymbol(node.nameToken.value);
+
+    if (funcType instanceof NativeFuncTypeSymbol) {
+        visitNativeFuncCall(node, funcType, env);
+        return;
     }
-    return lastValue;
+    if (!TypeHelper.isFuncType(funcType)) {
+        throw `类型 "${funcType.getName}" 不是函数类型`;
+    }
+    let funcNode = (funcType as FuncTypeSymbol).funcNode;
+    let actualParamList = node.paramList;
+    let formalParamList = funcNode.paramList;
+    if (actualParamList.length !== formalParamList.length) {
+        throw `函数 "${funcNode.nameToken.value}" 需要 ${formalParamList.length} 个参数`;
+    }
+
+    env.enterScope(funcNode.nameToken.value);
+
+    //检测类型
+    for (let i = 0; i < actualParamList.length; i++) {
+        let aParam = actualParamList[i];
+        let fParam = formalParamList[i];
+        let aParamType = aParam.checkType(env);
+        let fParamType = env.getTypeSymbol(fParam.varTypeNode.name);
+        if (!TypeHelper.isAssignbleFrom(fParamType, aParamType)) {
+            throw `不能将 "${aParamType.getName()}" 赋值给 "${fParamType.getName()}"`;
+        }
+    }
+
+    //将实参的值拷贝给形参
+    for (let i = 0; i < actualParamList.length; i++) {
+        env.defineVarSymbol(formalParamList[i].varNameNode.name, visitExpr(actualParamList[i], env), formalParamList[i].varTypeNode.name);
+    }
+    visitStmt(funcNode.body, env);
+    let returnValue = env.getReturn();
+    env.exitScope();
+    return returnValue;
 }
