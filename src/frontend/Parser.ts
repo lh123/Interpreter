@@ -359,6 +359,7 @@ export class Parser {
      *                   | <id>
      *                   | <int>
      *                   | <real>
+     *                   | <string>
      *                   | FunCallExpr
      */
     parserTermailExpression(): Ast.Expr {
@@ -384,6 +385,9 @@ export class Parser {
         } else if (token.type === PredefineTokenType.Bool) {
             this.nextToken();
             return new Ast.ConstNode(token, TypeSymbol.BoolType);
+        } else if(token.type === PredefineTokenType.String) {
+            this.nextToken();
+            return new Ast.ConstNode(token, TypeSymbol.StringType);
         } else {
             throw this.invalid(token);
         }

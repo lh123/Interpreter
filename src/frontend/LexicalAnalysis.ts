@@ -102,7 +102,7 @@ export class LexicalAnalysis {
                     if (this.sources.eof()) {
                         this.state = State.End;
                         const id = this.readBuffer.join('');
-                        if(id === "true" || id === "false") {
+                        if (id === "true" || id === "false") {
                             return this.creatToken(PredefineTokenType.Bool, id);
                         }
                         let type = keywordTypeMap.get(id);
@@ -119,7 +119,7 @@ export class LexicalAnalysis {
                         } else {
                             this.state = State.Start;
                             const id = this.readBuffer.join('');
-                            if(id === "true" || id === "false") {
+                            if (id === "true" || id === "false") {
                                 return this.creatToken(PredefineTokenType.Bool, id);
                             }
                             let type = keywordTypeMap.get(id);
@@ -164,21 +164,27 @@ export class LexicalAnalysis {
                         }
                     }
                 case State.Delimiter:
-                    this.state = State.Start;
-                    const de = this.readBuffer.join('');
-                    let deType = delimiterTypeMap.get(de)!;
-                    return this.creatToken(deType, de);
-                // case State.String:
-                //     currentChar = this.sources.currentChar();
-                //     if (currentChar === "\"") {
-                //         this.state = State.Start;
-                //         this.nextToken();
-                //         return this.creatToken(PredefineTokenType.String, this.readBuffer.join(''));
-                //     } else {
-                //         this.readBuffer.push(currentChar);
-                //         this.sources.nextChar();
-                //     }
-                //     break;
+                    currentChar = this.readBuffer[0];
+                    if (currentChar === "\"") {
+                        this.state = State.String;
+                        this.clearReadBuffer();
+                    } else {
+                        this.state = State.Start;
+                        const de = this.readBuffer.join('');
+                        let deType = delimiterTypeMap.get(de)!;
+                        return this.creatToken(deType, de);
+                    }
+                case State.String:
+                    currentChar = this.sources.currentChar();
+                    if (currentChar === "\"") {
+                        this.state = State.Start;
+                        this.sources.nextChar();
+                        return this.creatToken(PredefineTokenType.String, this.readBuffer.join(''));
+                    } else {
+                        this.readBuffer.push(currentChar);
+                        this.sources.nextChar();
+                    }
+                    break;
                 case State.End:
                     return this.creatToken(PredefineTokenType.EOF, "<eof>");
             }

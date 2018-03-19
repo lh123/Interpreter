@@ -26,6 +26,13 @@ export class BinaryExpr implements Expr {
         }
         let leftType = this.letftExpr.checkType(env);
         let rightType = this.rightExpr.checkType(env);
+        if (TypeHelper.isStringType(leftType) || TypeHelper.isStringType(rightType)) {
+            if (this.op.type === PredefineTokenType.Add) {
+                return TypeSymbol.StringType;
+            } else {
+                throw `"${leftType.getName()}" 与 "${rightType.getName()}" 不能进行 "${this.op.value}" 运算`;
+            }
+        }
         switch (this.op.type) {
             case PredefineTokenType.Add:
             case PredefineTokenType.Sub:

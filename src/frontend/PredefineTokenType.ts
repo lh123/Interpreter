@@ -16,6 +16,7 @@ export const PredefineTokenType = {
     Real: new TokenType("Real", "real"),
     String: new TokenType("String", "string"),
     Bool: new TokenType("Bool", "bool"),
+    Any: new TokenType("Any", "any"),
 
     And: new TokenType("And", "&&"),
     Or: new TokenType("Or", "||"),

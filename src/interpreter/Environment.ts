@@ -27,11 +27,14 @@ export class Environment {
         this.globalTypeSymbolTable.defineSymbol(TypeSymbol.IntegerType);
         this.globalTypeSymbolTable.defineSymbol(TypeSymbol.RealType);
         this.globalTypeSymbolTable.defineSymbol(TypeSymbol.BoolType);
+        this.globalTypeSymbolTable.defineSymbol(TypeSymbol.VoidType);
+        this.globalTypeSymbolTable.defineSymbol(TypeSymbol.StringType);
+        this.globalTypeSymbolTable.defineSymbol(TypeSymbol.AnyType);
 
         this.globalTypeSymbolTable.defineSymbol(NativeFuncTypeSymbol.Printf);
     }
 
-    setReturn(value: any){
+    setReturn(value: any) {
         this.currentVarSymbolTable.returnValue = value;
     }
 
